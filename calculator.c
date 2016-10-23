@@ -25,7 +25,7 @@ static const int first_proc_index = 1, second_proc_index = 2, operand_proc_index
 
 static ssize_t proc_write(struct file *filp, const char __user *buffer, size_t count, loff_t *data)
 {
-
+	
 }
 
 static ssize_t dev_read(struct file * file, char * buf, size_t count, loff_t *ppos)
@@ -49,12 +49,45 @@ static struct miscdevice result_dev = {
 
 static int calc_init(void)
 {		
+	printk(KERN_INFO "Calc module started working\n");
+	first_proc_file = proc_create_data(PROC_FIRST, 766, NULL, &proc_file_ops, (void*) &first_proc_index);
+	if (first_proc_file == NULL) {
+		printk(KERN_ERR "can't create first proc");
+		remove_proc_entry(PROC_FIRST, NULL);
+		return -ENOMEM;
+	}
+	second_proc_file = proc_create_data(PROC_SECOND, 766, NULL, &proc_file_ops, (void*) &second_proc_index);
+	if (second_proc_file == NULL) {
+		printk(KERN_ERR "can't create second proc");
+		remove_proc_entry(PROC_FIRST, NULL);
+		remove_proc_entry(PROC_SECOND, NULL);
+		return -ENOMEM;
+	}
+	operand_proc_file = proc_create_data(PROC_OPERAND, 766, NULL, &proc_file_ops, (void*) &operand_proc_index);
+	if (operand_proc_file == NULL) {
+		printk(KERN_ERR "can't create operand proc");
+		remove_proc_entry(PROC_FIRST, NULL);
+		remove_proc_entry(PROC_SECOND, NULL);
+		remove_proc_entry(PROC_OPERAND, NULL);
+		return -ENOMEM;
+	}	
+	if (misc_register(&result_dev)) {
+		printk(KERN_ERR "Unable to register \"result\" misc device\n");
+		remove_proc_entry(PROC_FIRST, NULL);
+		remove_proc_entry(PROC_SECOND, NULL);
+		remove_proc_entry(PROC_OPERAND, NULL);
+		return -ENOMEM;
+	}
 	return 0;
 }
 
 static void calc_exit(void)
 {
-	
+	printk(KERN_INFO "Calc module stopped working\n");
+	remove_proc_entry(PROC_FIRST, NULL);
+	remove_proc_entry(PROC_SECOND, NULL);
+	remove_proc_entry(PROC_OPERAND, NULL);
+	misc_deregister(&result_dev);
 }
 
 module_init(calc_init);
